@@ -1,0 +1,165 @@
+import telebot
+from telebot import types
+import random
+import time
+from datetime import datetime, timedelta
+import json
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# Remplace par ton token et l'ID du canal
+BOT_TOKEN = '7681705342:AAGLEW6bZ-2snBqGzqM44eRlysLqjY9WQwc'
+CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
+
+# Dictionnaire pour stocker les cooldowns et les parrainages
+user_cooldowns = {}
+user_referrals = {}
+
+def save_data():
+    with open("user_data.json", "w") as file:
+        json.dump({"referrals": user_referrals, "cooldowns": user_cooldowns}, file)
+
+def load_data():
+    global user_referrals, user_cooldowns
+    try:
+        with open("user_data.json", "r") as file:
+            data = json.load(file)
+            user_referrals = data.get("referrals", {})
+            user_cooldowns = data.get("cooldowns", {})
+    except FileNotFoundError:
+        pass
+
+load_data()
+
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+# Vérifier si l'utilisateur est abonné au canal
+def check_subscription(user_id):
+    try:
+        member = bot.get_chat_member(CHANNEL_ID, user_id)
+        return member.status in ['member', 'administrator', 'creator']
+    except Exception:
+        return False
+
+# Générer une prédiction aléatoire
+def generate_prediction():
+    min_mult = round(random.uniform(1.5, 5.0), 2)
+    max_mult = round(min_mult + random.uniform(0.5, 1.5), 2)
+    max_mult = min(max_mult, 15.0)
+    from datetime import datetime, timezone
+    current_time = datetime.now(timezone.utc)
+
+
+    return min_mult, max_mult, current_time.strftime("%H:%M:%S"), (current_time + timedelta(seconds=60)).strftime("%H:%M:%S")
+
+# Clavier personnalisé
+def main_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("🤳Lancer la Prediction 🚀")
+    markup.add("Règles", "1WIN", "🔗 Parrainage")
+    return markup
+
+# Commande /start (gestion des parrainages incluse)
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user_id = message.from_user.id
+    args = message.text.split()
+    user_id = message.chat.id
+
+ 
+    # Vérification de l'abonnement
+    if not check_subscription(user_id):
+        bot.reply_to(message, f"Pour utiliser ce bot, rejoignez d'abord le canal {CHANNEL_ID} !")
+        return
+
+    # Initialisation du parrainage si l'utilisateur n'est pas encore enregistré
+    if user_id not in user_referrals:
+        user_referrals[user_id] = {'count': 0, 'bonus': 0}
+
+    # Gestion du parrainage (si l'utilisateur a été invité)
+    if len(args) > 1 and args[1].isdigit():
+        referrer_id = int(args[1])
+        if referrer_id != user_id and referrer_id in user_referrals:
+            user_referrals[referrer_id]['count'] += 1
+            if user_referrals[referrer_id]['count'] % 20 == 0:
+                user_referrals[referrer_id]['bonus'] += 5
+            bot.send_message(referrer_id, f"Un nouvel ami a rejoint grâce à vous ! 🎉\nTotal : {user_referrals[referrer_id]['count']}")
+            save_data()
+
+#  @bot.message_handler(commands=['start'])
+# def send_welcome(message):
+   
+    bot.send_message(message.chat.id,"<b>LUKYJET PREDICTOR 2025 V1.0</b>\n\n"
+
+                           "⚙️ les nouvelles technologies ont permis d'obtenir des cotes futures directement à partir du jeu Lucky Jet\n\n"     
+                           "⚙️ administrator - @Minepro1w 🎰\n\n"
+                          
+                           "Clique sur 🤳Lancer la Prediction 🚀 pour avoir une prédiction 👇",
+                   parse_mode='HTML', reply_markup=main_keyboard())
+
+# Gestion des boutons
+@bot.message_handler(content_types=['text'])
+def handle_buttons(message):
+    user_id = message.from_user.id
+    if not check_subscription(user_id):
+        bot.reply_to(message, f"Rejoignez d'abord {CHANNEL_ID} pour utiliser le bot !")
+        return
+
+    if message.text == "🤳Lancer la Prediction 🚀":
+        if user_id in user_cooldowns and time.time() < user_cooldowns[user_id]:
+            time_left = int(user_cooldowns[user_id] - time.time())
+            bot.reply_to(message, f"<b> VEUILLEZ ATTENDRE {time_left} SECONDES AVANT LE PROCHAIN SIGNAL</b>\n\n"
+                                  "1 - Pour gagner avec la prédiction, vous devez avoir un compte avec le code promo obligatoire <b>CASHF</b>.\n"
+                                  "2 - Respectez les honoraires indiqués sur la prédiction.\n\n"
+                                  "Voici le lien pour s'inscrire 👉https://1wzyuh.com/v3/lucky-jet-updated?p=himp",parse_mode='HTML')
+            return
+
+        min_mult, max_mult, start_time, end_time = generate_prediction()
+        reliability = 90 + user_referrals.get(user_id, {'bonus': 0})['bonus']
+        prediction_text = (
+            "<b>NOUVEAU SIGNAL LUCKY JET</b>\n\n"
+            " <b>PRÉDICTION</b>🚀\n"
+            f"<b>     +{min_mult}x   〰️〰️   +{max_mult}x</b>\n\n"
+            f"⏳<b> HEURE:</b> {start_time} - {end_time} GMT\n"
+            f"<b>Fiabilité</b> : {reliability}%\n\n"
+            "1 - Pour gagner avec la prédiction, vous devez avoir un compte avec le code promo obligatoire <b>CASHF</b>.\n"
+            "2 - Respectez les honoraires indiqués sur la prédiction.\n\n"
+            "Voici le lien pour s'inscrire 👉https://1wzyuh.com/v3/lucky-jet-updated?p=himp "
+        )
+        bot.send_message(message.chat.id, prediction_text, parse_mode='HTML')
+        user_cooldowns[user_id] = time.time() + 120  # 2 minutes de cooldown
+
+    elif message.text == "Règles":
+        bot.send_message(message.chat.id,"📜<b> Comment ça marche ?</b>\n\n"
+                              "1. Utilisez 'Lancer une prédiction' pour obtenir un intervalle de cotes.\n"
+                              "2. Encaissez dans cet intervalle pour maximiser vos gains .\n"
+                              "3. Respectez le code promo <b>CASHF</b> lors de l'inscription pour accéder au faille.\n"
+                              "4. Invitez des amis pour augmenter la fiabilité des prédictions !",parse_mode='HTML')
+
+    elif message.text == "1WIN":
+        bot.reply_to(message, "Cliquez ici pour jouer 👉 https://1wzyuh.com/v3/lucky-jet-updated?p=himp ")
+
+    elif message.text == "🔗 Parrainage":
+        if user_id not in user_referrals:
+          if user_id not in user_referrals:
+             user_referrals[user_id] = {"count": 0, "bonus": 0}
+        save_data()  # Sauvegarde après ajout
+ # Initialise avec 0 parrainages
+        ref_count = user_referrals[user_id]['count']
+        bonus = user_referrals[user_id]['bonus']
+        invite_link = f"https://t.me/{bot.get_me().username}?start={user_id}"
+        referral_text = (
+            f"👥 <b>Parrainage</b>\n\n"
+            "<i>Invitez 20 amis pour augmenter la fiabilité de vos prédictions de 5% </i>!\n"
+            f"- <b>Nombre d'invités</b> : {ref_count}\n"
+            f"- <b>Votre ID</b> : {user_id}\n"
+            f"- <b>Précision actuel</b> : {90 + bonus}%\n\n"
+            f"<b>Votre lien d'invitation</b> : {invite_link}\n\n"
+            "<blockquote>invitez 40 personne pour avoir une prédiction fiable à 100% </blockquote>"
+
+        )
+        bot.send_message(message.chat.id, referral_text, parse_mode='HTML')
+
+# Lancer le bot
+bot.polling()
+# print("votre bot est lancé")
