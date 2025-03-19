@@ -16,9 +16,6 @@ CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
 user_cooldowns = {}
 user_referrals = {}
 
-# Initialisation du bot
-app_telegram = Application.builder().token(TOKEN).build()
-
 # Création du serveur Flask
 app = Flask(__name__)
 
