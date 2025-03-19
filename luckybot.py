@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask,request
 import threading
 import telebot
 from telebot import types
@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import json
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+app = Flask(__name__)
+
 # Remplace par ton token et l'ID du canal
 BOT_TOKEN = '7681705342:AAGLEW6bZ-2snBqGzqM44eRlysLqjY9WQwc'
 CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
@@ -16,12 +18,17 @@ CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
 user_cooldowns = {}
 user_referrals = {}
 
-# Création du serveur Flask
-app = Flask(__name__)
-
+# Route pour la page d'accueil
 @app.route('/')
 def home():
-    return "Bot Telegram en cours d'exécution ! 🚀"
+    return "Bot Telegram en ligne avec Flask!"
+
+# Route pour gérer les webhooks de Telegram
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = telebot.types.Update.de_json(request.stream.read().decode('utf-8'))
+    bot.process_new_updates([update])
+    return 'ok', 200
 
 def save_data():
     with open("user_data.json", "w") as file:
@@ -197,13 +204,17 @@ def handle_buttons(message):
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
-if __name__ == "__main__":
-    # Lancer Flask dans un thread séparé
-    threading.Thread(target=run_flask).start()
+# Démarrer le bot avec Flask
+if __name__ == '__main__':
+    # Supprimer le webhook existant
+    bot.remove_webhook()
     
-    # Lancer le bot Telegram
-    print("Bot Telegram en cours d'exécution...")
-    app_telegram.run_polling()
+    # Définir le webhook avec l'URL de Render
+    webhook_url =("https://lucky-bot-ce8w.onrender.com/webhook")  # L'URL du webhook, par exemple https://ton-app.render.com/webhook
+    bot.set_webhook(url=webhook_url)
+    
+    # Lancer l'application Flask avec le port dynamique fourni par Render
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)))  # Utilisation du port dynamique
 # Lancer le bot
 # bot.polling()
 # print("votre bot est lancé")
