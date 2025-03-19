@@ -1,3 +1,5 @@
+from flask import Flask
+import threading
 import telebot
 from telebot import types
 import random
@@ -13,6 +15,16 @@ CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
 # Dictionnaire pour stocker les cooldowns et les parrainages
 user_cooldowns = {}
 user_referrals = {}
+
+# Initialisation du bot
+app_telegram = Application.builder().token(TOKEN).build()
+
+# Création du serveur Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot Telegram en cours d'exécution ! 🚀"
 
 def save_data():
     with open("user_data.json", "w") as file:
@@ -59,6 +71,13 @@ def main_keyboard():
     markup.add("Règles", "1WIN", "🔗 Parrainage")
     return markup
 
+def subscription_keyboard():
+    markup = types.InlineKeyboardMarkup()
+    check_button = types.InlineKeyboardButton("Check ✅", callback_data="check_subscription")
+    markup.add(check_button)
+    return markup
+
+
 # Commande /start (gestion des parrainages incluse)
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -69,7 +88,13 @@ def send_welcome(message):
  
     # Vérification de l'abonnement
     if not check_subscription(user_id):
-        bot.reply_to(message, f"Pour utiliser ce bot, rejoignez d'abord le canal {CHANNEL_ID} !")
+        bot.send_message(
+            message.chat.id, 
+            f"🚀 Pour utiliser ce bot, rejoignez d'abord le canal 👉 {CHANNEL_ID} !\n\n"
+            "Ensuite, cliquez sur le bouton Check ✅ pour confirmer votre abonnement.", 
+            parse_mode='HTML',
+            reply_markup=subscription_keyboard()
+        )
         return
 
     # Initialisation du parrainage si l'utilisateur n'est pas encore enregistré
@@ -89,7 +114,14 @@ def send_welcome(message):
 #  @bot.message_handler(commands=['start'])
 # def send_welcome(message):
    
-    bot.send_message(message.chat.id,"<b>LUKYJET PREDICTOR 2025 V1.0</b>\n\n"
+    
+# Gestion du bouton "Check ✅"
+@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
+def check_subscription_callback(call):
+    user_id = call.from_user.id
+    if check_subscription(user_id):
+        bot.send_message(call.message.chat.id, "✅ Abonnement confirmé ! Vous pouvez maintenant utiliser le bot.", reply_markup=main_keyboard())
+        bot.send_message(call.message.chat.id,"<b>LUKYJET PREDICTOR 2025 V1.0</b>\n\n"
 
                            "⚙️ les nouvelles technologies ont permis d'obtenir des cotes futures directement à partir du jeu Lucky Jet\n\n"     
                            "⚙️ administrator - @Minepro1w 🎰\n\n"
@@ -97,6 +129,10 @@ def send_welcome(message):
                            "Clique sur 🤳Lancer la Prediction 🚀 pour avoir une prédiction 👇",
                    parse_mode='HTML', reply_markup=main_keyboard())
 
+    else:
+        bot.send_message(call.message.chat.id, f"❌ Vous n'êtes pas encore abonné à {CHANNEL_ID}. Rejoignez d'abord le canal et réessayez.", reply_markup=subscription_keyboard())
+        
+        
 # Gestion des boutons
 @bot.message_handler(content_types=['text'])
 def handle_buttons(message):
@@ -131,10 +167,10 @@ def handle_buttons(message):
 
     elif message.text == "Règles":
         bot.send_message(message.chat.id,"📜<b> Comment ça marche ?</b>\n\n"
-                              "1. Utilisez 'Lancer une prédiction' pour obtenir un intervalle de cotes.\n"
-                              "2. Encaissez dans cet intervalle pour maximiser vos gains .\n"
-                              "3. Respectez le code promo <b>CASHF</b> lors de l'inscription pour accéder au faille.\n"
-                              "4. Invitez des amis pour augmenter la fiabilité des prédictions !",parse_mode='HTML')
+                              "<blockquote>1. Utilisez le bouton ''Lancer la prédiction'' pour obtenir un intervalle de cotes.</blockquote>\n\n"
+                              "<blockquote>2. Encaissez dans cet intervalle pour maximiser vos gains .</blockquote>\n\n"
+                              "<blockquote>3. Respectez le code promo <b>CASHF</b> lors de l'inscription pour accéder au faille.</blockquote>\n\n"
+                              "<blockquote>4. Invitez des amis dans ''🔗 Parrainage'' pour augmenter la fiabilité des prédictions !</blockquote>",parse_mode='HTML')
 
     elif message.text == "1WIN":
         bot.reply_to(message, "Cliquez ici pour jouer 👉 https://1wzyuh.com/v3/lucky-jet-updated?p=himp ")
@@ -155,11 +191,22 @@ def handle_buttons(message):
             f"- <b>Votre ID</b> : {user_id}\n"
             f"- <b>Précision actuel</b> : {90 + bonus}%\n\n"
             f"<b>Votre lien d'invitation</b> : {invite_link}\n\n"
-            "<blockquote>invitez 40 personne pour avoir une prédiction fiable à 100% </blockquote>"
+            "<blockquote><b>invitez 40 personne pour avoir une prédiction fiable à 100% </b></blockquote>"
 
         )
         bot.send_message(message.chat.id, referral_text, parse_mode='HTML')
 
+# Fonction pour exécuter Flask en parallèle
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
+
+if __name__ == "__main__":
+    # Lancer Flask dans un thread séparé
+    threading.Thread(target=run_flask).start()
+    
+    # Lancer le bot Telegram
+    print("Bot Telegram en cours d'exécution...")
+    app_telegram.run_polling()
 # Lancer le bot
-bot.polling()
+# bot.polling()
 # print("votre bot est lancé")
