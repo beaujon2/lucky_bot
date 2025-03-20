@@ -161,7 +161,7 @@ def handle_buttons(message):
             "<b>NOUVEAU SIGNAL LUCKY JET</b>\n\n"
             " <b>PRÉDICTION</b>🚀\n"
             f"<b>     +{min_mult}x   〰️〰️   +{max_mult}x</b>\n\n"
-            f"⏳<b> HEURE:</b> {start_time} - {end_time} GMT\n"
+            f"⏳<b> HEURE:</b> {start_time + 1} - {end_time +1} GMT\n"
             f"<b>Fiabilité</b> : {reliability}%\n\n"
             "1 - Pour gagner avec la prédiction, vous devez avoir un compte avec le code promo obligatoire <b>CASHF</b>.\n"
             "2 - Respectez les honoraires indiqués sur la prédiction.\n\n"
