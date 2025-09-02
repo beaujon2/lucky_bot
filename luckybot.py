@@ -12,7 +12,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 app = Flask(__name__)
 
 # Remplace par ton token et l'ID du canal
-BOT_TOKEN = '7681705342:AAGLEW6bZ-2snBqGzqM44eRlysLqjY9WQwc'
+BOT_TOKEN = '7681705342:AAECmNfwrXMkrdYJkNYjLX-MfCsqILF32Hs'
 CHANNEL_ID = '@mine1wgroup'  # ou '-1001234567890' pour un canal privé
 
 # Dictionnaire pour stocker les cooldowns et les parrainages
@@ -219,3 +219,4 @@ if __name__ == '__main__':
 # Lancer le bot
 # bot.polling()
 # print("votre bot est lancé")
+
